@@ -13,6 +13,13 @@ from sqlalchemy.future import select
 
 router = APIRouter()
 
+# Função para lidar com exceções de integridade
+def handle_integrity_error(e: IntegrityError):
+    if 'cpf' in str(e):
+        raise HTTPException(status_code=303, detail=f"Já existe um atleta cadastrado com o cpf: {e.params['cpf']}")
+
+
+
 @router.post(
     '/', 
     summary='Criar um novo atleta',
@@ -69,8 +76,21 @@ async def post(
     status_code=status.HTTP_200_OK,
     response_model=list[AtletaOut],
 )
-async def query(db_session: DatabaseDependency) -> list[AtletaOut]:
-    atletas: list[AtletaOut] = (await db_session.execute(select(AtletaModel))).scalars().all()
+async def query(
+    db_session: DatabaseDependency,
+    nome: str = query(None, description="Nome do atleta"),
+    cpf: str = query(None, description="CPF do atleta"),
+    limit: int = query(10, description="Limite de resultados por página"),
+    offset: int = query(0, description="Deslocamento de resultados")
+) -> Page[AtletaOut]:
+    query = select(AtletaModel)
+    
+    if nome:
+        query = query.filter(AtletaModel.nome == nome)
+    if cpf:
+        query = query.filter(AtletaModel.cpf == cpf)
+    
+    atletas: list[AtletaOut] = (await db_session.execute(query)).scalars().all()
     
     return [AtletaOut.model_validate(atleta) for atleta in atletas]
 
@@ -140,3 +160,5 @@ async def delete(id: UUID4, db_session: DatabaseDependency) -> None:
     
     await db_session.delete(atleta)
     await db_session.commit()
+
+    add_pagination(router)
