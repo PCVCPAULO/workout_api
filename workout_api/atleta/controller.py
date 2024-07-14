@@ -2,6 +2,7 @@ from datetime import datetime
 from uuid import uuid4
 from fastapi import APIRouter, Body, HTTPException, status
 from pydantic import UUID4
+from fastapi_pagination import Page, add_pagination, paginate
 
 from workout_api.atleta.schemas import AtletaIn, AtletaOut, AtletaUpdate
 from workout_api.atleta.models import AtletaModel
@@ -9,6 +10,7 @@ from workout_api.categorias.models import CategoriaModel
 from workout_api.centro_treinamento.models import CentroTreinamentoModel
 
 from workout_api.contrib.dependencies import DatabaseDependency
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.future import select
 
 router = APIRouter()
